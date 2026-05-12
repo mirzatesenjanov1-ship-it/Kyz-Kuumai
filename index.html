@@ -216,6 +216,10 @@
 
         // ЖАҢЫ API АЧКЫЧТЫ КОШУУ
         const GEMINI_API_KEY = "AIzaSyA8R1wrfdLsuK2Aie17-UuM7YSY1DR9FYs";
+        
+        // Эски ката ачкычтарды тазалап, жаңысын мажбурлап орнотуу
+        localStorage.removeItem('gemini_api_key');
+        localStorage.setItem('gemini_api_key', GEMINI_API_KEY);
 
         function saveApiKeyAndStart() {
             const inputKey = document.getElementById('api-input').value.trim();
@@ -238,7 +242,6 @@
         }
 
         async function generateAIQuiz() {
-            const key = localStorage.getItem('gemini_api_key') || GEMINI_API_KEY;
             const topic = document.getElementById('ai-topic').value;
             const subject = document.getElementById('ai-subject').value;
 
@@ -246,9 +249,9 @@
 
             document.getElementById('loading-ai').style.display = "block";
             
-            // Бул жерде сиздин game-logic.js'деги функцияңыз чакырылат
+            // Жаңы ачкычты түздөн-түз логикага жиберебиз
             if (window.startAiQuiz) {
-                window.startAiQuiz(key, subject, topic);
+                window.startAiQuiz(GEMINI_API_KEY, subject, topic);
             }
         }
     </script>
