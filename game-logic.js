@@ -60,22 +60,33 @@ function selectLevel(idx) {
     document.getElementById('display-level-name').innerText = levelNames[idx];
 }
 
-// --- GEMINI AI ИНТЕГРАЦИЯСЫ ---
+// --- GEMINI AI ИНТЕГРАЦИЯСЫ (LocalStorage & Boosty) ---
 async function generateAIQuiz() {
-    let GEMINI_API_KEY = "";
-    if (typeof CONFIG !== 'undefined' && CONFIG.GEMINI_API_KEY) {
-        GEMINI_API_KEY = CONFIG.GEMINI_API_KEY.trim();
-    }
-    
-    if (!GEMINI_API_KEY || GEMINI_API_KEY.includes("YOUR_")) {
-        alert("API ачкычы туура эмес! config.js файлын текшериңиз.");
-        return;
+    // 1. Ачкычты браузерден текшерүү
+    let GEMINI_API_KEY = localStorage.getItem('MY_GEMINI_KEY');
+
+    // 2. Эгер ачкыч жок болсо, терезе сурайт
+    if (!GEMINI_API_KEY || GEMINI_API_KEY.trim() === "") {
+        const boostyUrl = "https://boosty.to/astrophysica/purchase/3930187?ssource=DIRECT&share=subscription_link";
+        const msg = "ИИ менен тест түзүү үчүн API ачкыч керек.\n\n" +
+                    "Ачкычты бул жерден алыңыз:\n" +
+                    boostyUrl + "\n\n" +
+                    "Ачкычты көчүрүп, бул жерге чаптаңыз:";
+        
+        GEMINI_API_KEY = prompt(msg);
+        
+        if (GEMINI_API_KEY && GEMINI_API_KEY.length > 20) {
+            localStorage.setItem('MY_GEMINI_KEY', GEMINI_API_KEY.trim());
+        } else {
+            alert("API ачкычсыз ИИ иштебейт. Сураныч, Boosty-ден ачкычты алыңыз.");
+            return;
+        }
     }
 
     const subjectEl = document.getElementById('ai-subject');
     const topicInputEl = document.getElementById('ai-topic');
     const loading = document.getElementById('loading-ai');
-    const btn = document.getElementById('ai-generate-btn') || (event ? event.target : null);
+    const btn = document.getElementById('ai-generate-btn');
 
     const subject = subjectEl ? subjectEl.value : "Физика";
     const topic = (topicInputEl && topicInputEl.value.trim()) ? topicInputEl.value.trim() : "Жалпы суроолор";
@@ -87,33 +98,33 @@ async function generateAIQuiz() {
     }
     isAIGame = true;
 
-    const prompt = `Сен кыргыз тилдүү профессионал мугалимсиң. ${subject} предметинен "${topic}" темасына 20 суроодон турган тест түз. 
-    Формат ТАЗА JSON болушу керек, Markdown (```json) колдонбо, башка эч кандай текст кошпо: [{"q": "суроо", "a": ["вариант1", "вариант2", "вариант3"], "c": "туура жооптун тексти"}]`;
+    const promptText = `Сен кыргыз тилдүү профессионал мугалимсиң. ${subject} предметинен "${topic}" темасына 20 суроодон турган тест түз. Формат ТАЗА JSON болушу керек, Markdown колдонбо: [{"q": "суроо", "a": ["вариант1", "вариант2", "вариант3"], "c": "туура жооп"}]`;
 
-    // v1beta версиясы туруктуураак иштеши үчүн URL жаңыртылды
-    const url = `[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$){GEMINI_API_KEY}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
     try {
         const response = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
         });
 
         if (!response.ok) {
-            const errData = await response.json();
-            throw new Error(errData.error?.message || "Байланыш үзүлдү.");
+            // Эгер ачкыч иштебесе, өчүрүп кайра суроо үчүн
+            if (response.status === 400 || response.status === 403) {
+                localStorage.removeItem('MY_GEMINI_KEY');
+                throw new Error("Ачкыч жараксыз. Жаңы ачкыч киргизип көрүңүз.");
+            }
+            throw new Error("Байланыш үзүлдү.");
         }
 
         const data = await response.json();
         let textResponse = data.candidates[0].content.parts[0].text;
-        
-        // JSON'ду тазалоо үчүн RegExp колдонуу
         const jsonMatch = textResponse.match(/\[[\s\S]*\]/);
+        
         if (!jsonMatch) throw new Error("ИИ туура эмес форматта жооп берди.");
         
-        const aiQuestions = JSON.parse(jsonMatch[0]);
-        window.tempAIQuestions = aiQuestions;
+        window.tempAIQuestions = JSON.parse(jsonMatch[0]);
         
         if (loading) loading.style.display = 'none';
         document.getElementById('ai-setup-screen').style.display = "none";
@@ -122,7 +133,7 @@ async function generateAIQuiz() {
 
     } catch (error) {
         console.error("Ката:", error);
-        alert("Ката кетти: " + error.message);
+        alert("Ката: " + error.message);
         if (loading) loading.style.display = 'none';
     } finally {
         if (btn) {
