@@ -62,11 +62,10 @@ function selectLevel(idx) {
 
 // --- GEMINI AI ИНТЕГРАЦИЯСЫ ---
 async function generateAIQuiz() {
-    // API ачкычы эми config.js файлындагы CONFIG объектисинен алынат
     const GEMINI_API_KEY = typeof CONFIG !== 'undefined' ? CONFIG.GEMINI_API_KEY : ""; 
     
-    if (!GEMINI_API_KEY) {
-        alert("API ачкычы табылган жок! Сураныч, config.js файлын текшериңиз.");
+    if (!GEMINI_API_KEY || GEMINI_API_KEY.includes(" ")) {
+        alert("API ачкычы табылган жок же анда боштуктар бар! config.js файлын текшериңиз.");
         return;
     }
 
@@ -80,16 +79,29 @@ async function generateAIQuiz() {
     const prompt = `Сен кыргыз тилдүү мугалимсиң. ${subject} предметинен "${topic}" темасына 20 суроодон турган тест түз. 
     Формат ТАЗА JSON: [{"q": "суроо", "a": ["вариант1", "вариант2", "вариант3"], "c": "туура жооптун тексти"}]. Башка текст кошпо.`;
 
+    // URL дарегин trim() менен тазалап, так форматта жөнөтөбүз
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY.trim()}`;
+
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        const response = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
         });
 
+        if (!response.ok) {
+            throw new Error(`Сервер катасы: ${response.status}. Ачкычты же интернетти текшериңиз.`);
+        }
+
         const data = await response.json();
+        
+        if (!data.candidates || !data.candidates[0].content.parts[0].text) {
+            throw new Error("ИИ туура эмес жооп берди.");
+        }
+
         const textResponse = data.candidates[0].content.parts[0].text;
-        const cleanJson = textResponse.replace(/```json|```/g, "").trim();
+        const cleanJson = textResponse.replace(/```json|
+```/g, "").trim();
         const aiQuestions = JSON.parse(cleanJson);
 
         loading.style.display = 'none';
@@ -100,8 +112,8 @@ async function generateAIQuiz() {
         window.tempAIQuestions = aiQuestions;
 
     } catch (error) {
-        console.error(error);
-        alert("ИИ суроо түзө алган жок. Кайра аракет кылыңыз.");
+        console.error("Генерация катасы:", error);
+        alert("ИИ суроо түзө алган жок: " + error.message);
         loading.style.display = 'none';
     }
 }
