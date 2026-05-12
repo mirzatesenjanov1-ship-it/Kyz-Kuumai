@@ -1,6 +1,6 @@
 let myRole = "", myName = "", sessionRef = null, gameActive = false;
 let selectedLevelIdx = null;
-let isAIGame = false; // ИИ режимин текшерүү үчүн
+let isAIGame = false; 
 const levelNames = ["МЕХАНИКА", "МОЛЕКУЛАЛЫК ФИЗИКА", "ЭЛЕКТРОДИНАМИКА", "ТЕРМЕЛҮҮЛӨР", "ОПТИКА", "АТОМДУК ФИЗИКА", "АСТРОНОМИЯ"];
 
 // --- МУЗЫКА ---
@@ -62,25 +62,32 @@ function selectLevel(idx) {
 
 // --- GEMINI AI ИНТЕГРАЦИЯСЫ ---
 async function generateAIQuiz() {
-    const GEMINI_API_KEY = typeof CONFIG !== 'undefined' ? CONFIG.GEMINI_API_KEY : ""; 
+    // API Ачкычты текшерүү
+    let GEMINI_API_KEY = "";
+    if (typeof CONFIG !== 'undefined' && CONFIG.GEMINI_API_KEY) {
+        GEMINI_API_KEY = CONFIG.GEMINI_API_KEY.trim();
+    }
     
-    if (!GEMINI_API_KEY || GEMINI_API_KEY.includes(" ")) {
-        alert("API ачкычы табылган жок же анда боштуктар бар! config.js файлын текшериңиз.");
+    if (!GEMINI_API_KEY || GEMINI_API_KEY === "" || GEMINI_API_KEY.includes("YOUR_")) {
+        alert("API ачкычы туура эмес! config.js файлын текшериңиз.");
         return;
     }
 
     const subject = document.getElementById('ai-subject').value;
-    const topic = document.getElementById('ai-topic').value || "Жалпы";
+    const topicInput = document.getElementById('ai-topic').value.trim();
+    const topic = topicInput || "Жалпы суроолор";
     const loading = document.getElementById('loading-ai');
+    const btn = document.getElementById('ai-generate-btn');
 
     loading.style.display = 'block';
+    btn.disabled = true; // Кайра-кайра басуудан коргоо
     isAIGame = true;
 
-    const prompt = `Сен кыргыз тилдүү мугалимсиң. ${subject} предметинен "${topic}" темасына 20 суроодон турган тест түз. 
-    Формат ТАЗА JSON: [{"q": "суроо", "a": ["вариант1", "вариант2", "вариант3"], "c": "туура жооптун тексти"}]. Башка текст кошпо.`;
+    const prompt = `Сен кыргыз тилдүү профессионал мугалимсиң. ${subject} предметинен "${topic}" темасына 20 суроодон турган тест түз. 
+    Ар бир суроодо 3 вариант болсун.
+    Формат ТАЗА JSON болушу керек, башка эч кандай текст кошпо: [{"q": "суроо", "a": ["вариант1", "вариант2", "вариант3"], "c": "туура жооптун тексти"}]`;
 
-    // URL дарегин trim() менен тазалап, так форматта жөнөтөбүз
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY.trim()}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
     try {
         const response = await fetch(url, {
@@ -90,31 +97,39 @@ async function generateAIQuiz() {
         });
 
         if (!response.ok) {
-            throw new Error(`Сервер катасы: ${response.status}. Ачкычты же интернетти текшериңиз.`);
+            const errData = await response.json();
+            throw new Error(errData.error?.message || "Сервер байланышы үзүлдү.");
         }
 
         const data = await response.json();
         
         if (!data.candidates || !data.candidates[0].content.parts[0].text) {
-            throw new Error("ИИ туура эмес жооп берди.");
+            throw new Error("ИИ жооп кайтарган жок. Кайра аракет кылыңыз.");
         }
 
-        const textResponse = data.candidates[0].content.parts[0].text;
+        let textResponse = data.candidates[0].content.parts[0].text;
+        // JSON'ду тазалоо (Markdown белгилерин алып салуу)
         const cleanJson = textResponse.replace(/```json|
 ```/g, "").trim();
         const aiQuestions = JSON.parse(cleanJson);
 
+        if (!Array.isArray(aiQuestions) || aiQuestions.length === 0) {
+            throw new Error("Суроолор бош форматта келди.");
+        }
+
+        window.tempAIQuestions = aiQuestions;
+        
         loading.style.display = 'none';
+        btn.disabled = false;
         document.getElementById('ai-setup-screen').style.display = "none";
         document.getElementById('setup-screen').style.display = "flex";
         document.getElementById('display-level-name').innerText = `ИИ ТЕСТ: ${subject}`;
-        
-        window.tempAIQuestions = aiQuestions;
 
     } catch (error) {
         console.error("Генерация катасы:", error);
-        alert("ИИ суроо түзө алган жок: " + error.message);
+        alert("Ката кетти: " + error.message);
         loading.style.display = 'none';
+        btn.disabled = false;
     }
 }
 
@@ -155,7 +170,7 @@ function joinRoom() {
             if (isAIGame) window.tempAIQuestions = data.aiQuestions;
             sessionRef.child('players/girl').set(myName);
             startSync();
-        } else { alert("Бөлмө табылган жок!"); }
+        } else { alert("Бөлмө табылган жок же бөлмө толгон!"); }
     });
 }
 
@@ -254,8 +269,8 @@ function renderGame() {
 
     sessionRef.child('pos').on('value', s => {
         const p = s.val() || {boy:0, girl:0};
-        const bPos = 5 + p.boy;
-        const gPos = 45 + p.girl;
+        const bPos = 5 + (p.boy || 0);
+        const gPos = 45 + (p.girl || 0);
         document.getElementById('boy-container').style.left = bPos + "%";
         document.getElementById('girl-container').style.left = gPos + "%";
         
@@ -284,10 +299,8 @@ function renderGame() {
             lb.style.display = "flex";
             lb.style.zIndex = "10000";
             lb.style.position = "fixed";
-            lb.style.top = "0";
-            lb.style.left = "0";
-            lb.style.width = "100%";
-            lb.style.height = "100%";
+            lb.style.top = "0"; lb.style.left = "0";
+            lb.style.width = "100%"; lb.style.height = "100%";
 
             let winnerImg = isBoyWin ? "boy_run.png" : "girl_run.png";
 
@@ -297,15 +310,15 @@ function renderGame() {
                         <div style="width: 250px; height: 250px; border-radius: 50%; overflow: hidden; border: 8px solid #f1c40f; box-shadow: 0 0 30px #f1c40f;">
                             <img src="${winnerImg}" style="width: 100%; height: 100%; object-fit: cover;">
                         </div>
-                        <div style="position: absolute; bottom: 0; right: 0; background: #f1c40f; color: black; padding: 10px 20px; border-radius: 30px; font-weight: bold; font-size: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
+                        <div style="position: absolute; bottom: 0; right: 0; background: #f1c40f; color: black; padding: 10px 20px; border-radius: 30px; font-weight: bold; font-size: 20px;">
                             🏆 УТТУ!
                         </div>
                     </div>
-                    <h1 style="font-size: 45px; color: #f1c40f; margin: 10px 0; text-transform: uppercase; letter-spacing: 2px;">${winnerName}</h1>
-                    <p style="font-size: 24px; color: #ffffff; margin-bottom: 40px; opacity: 0.9; padding: 0 20px;">
+                    <h1 style="font-size: 45px; color: #f1c40f; margin: 10px 0;">${winnerName}</h1>
+                    <p style="font-size: 24px; margin-bottom: 40px; padding: 0 20px;">
                         ${isBoyWin ? winnerName + " " + loserName + " аттуу кызды кууп жетти!" : winnerName + " " + loserName + " аттуу жигиттен качып кетти!"}
                     </p>
-                    <button onclick="location.reload()" style="background: #f1c40f; color: black; font-size: 24px; padding: 15px 50px; border-radius: 50px; font-weight: bold; cursor: pointer; border: none; box-shadow: 0 5px 15px rgba(241, 196, 15, 0.4);">🔄 КАЙРА БАШТОО</button>
+                    <button onclick="location.reload()" style="background: #f1c40f; color: black; font-size: 24px; padding: 15px 50px; border-radius: 50px; font-weight: bold; cursor: pointer; border: none;">🔄 КАЙРА БАШТОО</button>
                 </div>
             `;
         });
