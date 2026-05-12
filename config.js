@@ -1,4 +1,4 @@
-// config.js
+// Бул файл API ачкычтарды коопсуз сактоо үчүн колдонулат
 const CONFIG = {
-    GEMINI_API_KEY: "ЖАҢЫ_API_АЧКЫЧТЫ_УШУЛ_ЖЕРГЕ_КОЮҢУЗ"
+    GEMINI_API_KEY: "AIzaSyDXZncnB1sfsxeKvALN-m-OoVZfreZxC2c" 
 };
