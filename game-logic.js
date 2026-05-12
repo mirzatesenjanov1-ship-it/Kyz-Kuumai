@@ -62,7 +62,7 @@ function selectLevel(idx) {
 
 // --- GEMINI AI ИНТЕГРАЦИЯСЫ ---
 async function generateAIQuiz() {
-    const GEMINI_API_KEY = "СИЗДИН_API_АЧКЫЧЫҢЫЗ"; // Бул жерге өзүңүздүн ачкычты коюңуз
+    const GEMINI_API_KEY = "AIzaSyDXZncnB1sfsxeKvALN-m-OoVZfreZxC2c"; // API ачкычы жайгаштырылды
     const subject = document.getElementById('ai-subject').value;
     const topic = document.getElementById('ai-topic').value || "Жалпы";
     const loading = document.getElementById('loading-ai');
