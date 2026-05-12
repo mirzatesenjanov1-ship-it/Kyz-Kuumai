@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ky">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Кыз Куумай - Физика</title>
+    <style>
+        /* НЕГИЗГИ СТИЛДЕР */
+        body { overflow: hidden; margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #000; }
+        
+        /* Бардык экрандар үчүн kyz-jygyt.png фон катары колдонулат */
+        .screen { 
+            position: fixed; width: 100%; height: 100%; 
+            display: none; flex-direction: column; align-items: center; 
+            justify-content: center; 
+            background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('kyz-jygyt.png') center/cover no-repeat; 
+            z-index: 200;
+        }
+
+        /* МЕНЮ БАСКЫЧТАРЫ */
+        .level-container {
+            width: 100%; max-height: 70vh; overflow-y: auto; 
+            display: flex; flex-direction: column; align-items: center;
+            padding: 10px 0;
+        }
+
+        .btn { 
+            width: 85%; max-width: 320px; padding: 15px; margin: 8px; 
+            border-radius: 15px; border: none; font-size: 16px; 
+            font-weight: bold; cursor: pointer; transition: 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .level-btn { background: #2ecc71; color: white; border-bottom: 4px solid #27ae60; }
+        .level-btn:active { transform: translateY(2px); border-bottom: 2px solid #27ae60; }
+
+        /* ОЮН ТАЛААСЫ - АППАК ФОН */
+        #game-field { position: relative; width: 100%; height: 100vh; background: #ffffff; display: none; transition: background-color 0.4s; }
+        
+        /* ВИДЕОНУ ӨЙДӨРӨӨК АЛУУ (bottom: 45%) */
+        .horse-container { 
+            position: absolute; 
+            bottom: 45%; 
+            transition: left 0.6s cubic-bezier(0.25, 0.1, 0.25, 1); 
+            width: 150px; 
+        }
+        .horse-container video { width: 100%; height: auto; border-radius: 10px; }
+        
+        /* СУРООЛОР БӨЛҮГҮ */
+        #ui-bottom { 
+            position: fixed; bottom: 0; width: 100%; 
+            background: rgba(0,0,0,0.9); display: none; 
+            flex-direction: column; padding: 15px; box-sizing: border-box;
+            border-top: 3px solid #f1c40f;
+            z-index: 300;
+        }
+        
+        #q-text { color: white; text-align: center; font-size: 18px; margin-bottom: 15px; min-height: 50px; }
+        #options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        
+        .opt-btn { background: #3498db; color: white; padding: 12px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; }
+
+        /* ЖООП БЕРҮҮ ЭФФЕКТТЕРИ */
+        .disabled-overlay { pointer-events: none; opacity: 0.6; }
+
+        /* ЭМОЦИЯЛАР АНИМАЦИЯСЫ */
+        @keyframes floatUp {
+            0% { transform: translate(-50%, 0); opacity: 1; }
+            100% { transform: translate(-50%, -150px); opacity: 0; }
+        }
+        .emoji-pop { position: absolute; pointer-events: none; user-select: none; z-index: 500; font-size: 50px; }
+
+        /* СКРОЛЛДУ СУЛУУЛОО */
+        .level-container::-webkit-scrollbar { width: 6px; }
+        .level-container::-webkit-scrollbar-thumb { background: #f1c40f; border-radius: 10px; }
+
+        /* ЭМОЦИЯЛАР ПАНЕЛИ */
+        #emoji-bar { display: flex; justify-content: center; gap: 15px; margin-bottom: 10px; }
+        .emoji-btn { font-size: 24px; cursor: pointer; transition: 0.2s; }
+        .emoji-btn:hover { transform: scale(1.2); }
+    </style>
+</head>
+<body id="game-body">
+
+    <audio id="menuMusic" loop preload="auto">
+        <source src="music-menu.mp3" type="audio/mpeg">
+    </audio>
+
+    <audio id="gameMusic" loop preload="auto">
+        <source src="music.mp3" type="audio/mpeg">
+    </audio>
+
+    <div id="start-screen" class="screen" style="display: flex;">
+        <img src="kyz-jygyt.png" style="width: 200px; border-radius: 50%; border: 5px solid #f1c40f; margin-bottom: 20px;">
+        <h1 style="color: white; text-align: center; text-shadow: 2px 2px 10px #000;">КЫЗ КУУМАЙ: ФИЗИКА</h1>
+        <button class="btn" style="background: #f1c40f; color: #000; font-size: 20px;" onclick="initGame()">ОЮНДУ БАШТОО</button>
+    </div>
+
+    <div id="level-screen" class="screen">
+        <h2 style="color: #f1c40f; text-shadow: 2px 2px 5px #000;">ФИЗИКА: БӨЛҮМДҮ ТАНДАҢЫЗ</h2>
+        <div class="level-container">
+            <button class="btn level-btn" onclick="selectLevel(0)">1. МЕХАНИКА</button>
+            <button class="btn level-btn" onclick="selectLevel(1)">2. МОЛЕКУЛАЛЫК ФИЗИКА</button>
+            <button class="btn level-btn" onclick="selectLevel(2)">3. ЭЛЕКТРОДИНАМИКА</button>
+            <button class="btn level-btn" onclick="selectLevel(3)">4. ТЕРМЕЛҮҮЛӨР ЖАНА ТОЛКУНДАР</button>
+            <button class="btn level-btn" onclick="selectLevel(4)">5. ОПТИКА</button>
+            <button class="btn level-btn" onclick="selectLevel(5)">6. АТОМДУК ФИЗИКА</button>
+            <button class="btn level-btn" onclick="selectLevel(6)">7. АСТРОНОМИЯ</button>
+        </div>
+    </div>
+
+    <div id="setup-screen" class="screen">
+        <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 20px; backdrop-filter: blur(10px); width: 85%; max-width: 350px; text-align: center;">
+            <h2 id="display-level-name" style="color: #fff; font-size: 18px; margin-bottom: 20px;"></h2>
+            <input type="text" id="player-name" placeholder="Атыңызды жазыңыз" class="btn" style="background: #fff; color: #333;">
+            <div id="room-controls">
+                <button class="btn" style="background: #e67e22; color: white;" onclick="createRoom()">Бөлмө ачуу</button>
+                <div style="color: #eee; margin: 10px 0;">— же —</div>
+                <input type="number" id="room-input" placeholder="Кодду жазыңыз" class="btn" style="background: #fff; color: #333;">
+                <button class="btn" style="background: #3498db; color: white;" onclick="joinRoom()">Оюнга кошулуу</button>
+            </div>
+            <div id="wait-status" style="color: #f1c40f; margin-top: 15px; font-size: 14px;"></div>
+            <button class="btn" style="background: #95a5a6; width: 120px; margin-top: 20px;" onclick="location.reload()">Артка</button>
+        </div>
+    </div>
+
+    <div id="sync-overlay" class="screen">
+        <h1 id="countdown" style="font-size: 60px; color: white;">ДАЯРБЫ?</h1>
+        <button id="ready-btn" class="btn" style="background: #f1c40f;" onclick="triggerReady()">МЕН ДАЯРМЫН!</button>
+        <p id="sync-info" style="color: white; margin-top: 10px;"></p>
+    </div>
+
+    <div id="game-field">
+        <div id="boy-container" class="horse-container" style="left: 5%;">
+            <video id="boyVideo" loop muted playsinline>
+                <source src="boy_run.mp4" type="video/mp4">
+            </video>
+        </div>
+        <div id="girl-container" class="horse-container" style="left: 45%;">
+            <video id="girlVideo" loop muted playsinline>
+                <source src="girl_run.mp4" type="video/mp4">
+            </video>
+        </div>
+    </div>
+
+    <div id="ui-bottom">
+        <div id="emoji-bar">
+            <span class="emoji-btn" onclick="sendEmoji('😂')">😂</span>
+            <span class="emoji-btn" onclick="sendEmoji('🚀')">🚀</span>
+            <span class="emoji-btn" onclick="sendEmoji('🔥')">🔥</span>
+            <span class="emoji-btn" onclick="sendEmoji('😎')">😎</span>
+            <span class="emoji-btn" onclick="sendEmoji('😱')">😱</span>
+        </div>
+        <div id="q-text">Суроо жүктөлүүдө...</div>
+        <div id="options"></div>
+    </div>
+
+    <div id="leaderboard-screen" class="screen"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
+    <script>
+        // FIREBASE ЖӨНДӨӨСҮ
+        const firebaseConfig = { databaseURL: "https://kyz-kuumay-game-default-rtdb.firebaseio.com/" };
+        firebase.initializeApp(firebaseConfig);
+
+        function initGame() {
+            const music = document.getElementById('menuMusic');
+            music.play().catch(e => console.log("Музыка иштеши үчүн клик керек"));
+            document.getElementById('start-screen').style.display = "none";
+            document.getElementById('level-screen').style.display = "flex";
+        }
+    </script>
+    
+    <script src="questions.js"></script>
+    <script src="game-logic.js"></script>
+
+</body>
+</html>
