@@ -62,7 +62,14 @@ function selectLevel(idx) {
 
 // --- GEMINI AI ИНТЕГРАЦИЯСЫ ---
 async function generateAIQuiz() {
-    const GEMINI_API_KEY = "AIzaSyDXZncnB1sfsxeKvALN-m-OoVZfreZxC2c"; // API ачкычы жайгаштырылды
+    // API ачкычы эми config.js файлындагы CONFIG объектисинен алынат
+    const GEMINI_API_KEY = typeof CONFIG !== 'undefined' ? CONFIG.GEMINI_API_KEY : ""; 
+    
+    if (!GEMINI_API_KEY) {
+        alert("API ачкычы табылган жок! Сураныч, config.js файлын текшериңиз.");
+        return;
+    }
+
     const subject = document.getElementById('ai-subject').value;
     const topic = document.getElementById('ai-topic').value || "Жалпы";
     const loading = document.getElementById('loading-ai');
@@ -90,7 +97,6 @@ async function generateAIQuiz() {
         document.getElementById('setup-screen').style.display = "flex";
         document.getElementById('display-level-name').innerText = `ИИ ТЕСТ: ${subject}`;
         
-        // ИИ суроолорун глобалдык өзгөрмөгө сактоо
         window.tempAIQuestions = aiQuestions;
 
     } catch (error) {
@@ -182,7 +188,6 @@ function renderGame() {
     let qIdx = 0;
     let gameFinished = false;
     
-    // Эгер ИИ оюну болсо tempAIQuestions колдонулат, болбосо questions.js ичиндеги allQuestions
     const currentQuestions = isAIGame ? window.tempAIQuestions : (allQuestions[selectedLevelIdx] || []).slice(0, 30); 
 
     function shuffleOptions(array) {
