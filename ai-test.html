@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ky">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Тест Түзүүчү - Кыз Куумай</title>
+    <style>
+        body { font-family: 'Arial', sans-serif; background-color: #f4f4f4; padding: 20px; }
+        .setup-container { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
+        h2 { color: #2c3e50; text-align: center; }
+        select, input, button { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }
+        button { background-color: #27ae60; color: white; border: none; cursor: pointer; font-weight: bold; }
+        button:hover { background-color: #219150; }
+        #loading { display: none; text-align: center; color: #e67e22; font-weight: bold; }
+        .quiz-area { display: none; margin-top: 20px; background: #fff; padding: 20px; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="setup-container" id="setup-box">
+    <h2>Кыз Куумай: AI Тест</h2>
+    
+    <label>Предметти тандаңыз:</label>
+    <select id="subject-select">
+        <option value="Физика">Физика</option>
+        <option value="Математика">Математика</option>
+        <option value="Кыргыз тили">Кыргыз тили</option>
+        <option value="Тарых">Тарых</option>
+        <option value="Биология">Биология</option>
+    </select>
+
+    <label>Класс:</label>
+    <select id="grade-select">
+        <option value="5">5-класс</option>
+        <option value="6">6-класс</option>
+        <option value="7">7-класс</option>
+        <option value="8">8-класс</option>
+        <option value="9">9-класс</option>
+        <option value="10">10-класс</option>
+        <option value="11">11-класс</option>
+    </select>
+
+    <label>Тема (кааласаңыз):</label>
+    <input type="text" id="topic-input" placeholder="Мисалы: Механика же Манас эпосу">
+
+    <button onclick="startAIGeneration()">Оюнду баштоо (ИИ суроо түзөт)</button>
+    <div id="loading">Gemini суроолорду ойлонуп жатат... ⏳</div>
+</div>
+
+<div id="quiz-display" class="quiz-area">
+    <h3 id="question-text"></h3>
+    <div id="options-container"></div>
+</div>
+
+<script>
+    // 1. API АЧКЫЧТЫ БУЛ ЖЕРГЕ КОЮҢУЗ
+    const GEMINI_API_KEY = "СИЗДИН_КӨЧҮРҮЛГӨН_АЧКЫЧЫҢЫЗ"; 
+
+    async function startAIGeneration() {
+        const subject = document.getElementById('subject-select').value;
+        const grade = document.getElementById('grade-select').value;
+        const topic = document.getElementById('topic-input').value || "Жалпы темалар";
+        const loading = document.getElementById('loading');
+
+        loading.style.display = 'block';
+
+        const questions = await getQuestionsFromAI(subject, grade, topic);
+
+        loading.style.display = 'none';
+
+        if (questions && questions.length > 0) {
+            alert("ИИ " + questions.length + " суроо түздү! Оюнга өтөбүз.");
+            console.log("Даяр суроолор:", questions);
+            displayQuestion(questions, 0); // Биринчи суроону көрсөтүү
+        }
+    }
+
+    async function getQuestionsFromAI(subject, grade, topic) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+        const prompt = `Сен кыргыз тилдүү мектеп мугалимисиң. 
+        ${subject} предметинен, ${grade}-класстын деңгээлинде, "${topic}" темасына 3 суроо түз. 
+        Жоопторду ТАЗА JSON форматында гана бер. Башка текст кошпо. 
+        Формат: [{"q": "суроо", "a": ["вариант1", "вариант2", "вариант3"], "correct": 0}] 
+        Correct - бул туура жооптун индекси.`;
+
+        try {
+            const response = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }]
+                })
+            });
+
+            const data = await response.json();
+            let textResponse = data.candidates[0].content.parts[0].text;
+            
+            // JSONду тазалоо (ИИ кээде ```json кошуп ийиши мүмкүн)
+            const cleanJson = textResponse.replace(/```json|```/g, "").trim();
+            return JSON.parse(cleanJson);
+
+        } catch (error) {
+            console.error("Ката кетти:", error);
+            alert("ИИден жооп келген жок. API ачкычты текшериңиз.");
+            return null;
+        }
+    }
+
+    function displayQuestion(questions, index) {
+        const quizDisplay = document.getElementById('quiz-display');
+        const qText = document.getElementById('question-text');
+        const optContainer = document.getElementById('options-container');
+
+        quizDisplay.style.display = 'block';
+        document.getElementById('setup-box').style.display = 'none';
+
+        const currentQ = questions[index];
+        qText.innerText = currentQ.q;
+        optContainer.innerHTML = '';
+
+        currentQ.a.forEach((opt, i) => {
+            const btn = document.createElement('button');
+            btn.innerText = opt;
+            btn.onclick = () => {
+                if (i === currentQ.correct) {
+                    alert("Туура! Ат ылдамдады!");
+                    if (index + 1 < questions.length) displayQuestion(questions, index + 1);
+                    else alert("Тест аяктады!");
+                } else {
+                    alert("Ката! Кайра аракет кылыңыз.");
+                }
+            };
+            optContainer.appendChild(btn);
+        });
+    }
+</script>
+
+</body>
+</html>
