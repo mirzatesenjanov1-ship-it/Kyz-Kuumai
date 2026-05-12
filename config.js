@@ -1,4 +1,4 @@
-// Бул файл API ачкычтарды коопсуз сактоо үчүн колдонулат
 const CONFIG = {
-    GEMINI_API_KEY: "AIzaSyDXZncnB1sfsxeKvALN-m-OoVZfreZxC2c" 
+    // image_d2fef7.png файлындагы жаңы ачкыч
+    GEMINI_API_KEY: "AIzaSyBypyHe-IRhRksv1VMfUT2ZNIGn3IyvPRk"
 };
