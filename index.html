@@ -111,11 +111,9 @@
             document.getElementById('loading-ai').style.display = "block";
             document.getElementById('ai-generate-btn').disabled = true;
 
-            // ИИге жиберилүүчү сурам
             const userPrompt = `Кыргыз тилинде ${subject} предметинин "${topic}" темасы боюнча 10 суроодон турган тестти так ушул JSON форматында бер: [{"q": "Суроо?", "o": ["Туура жооп", "Ката 1", "Ката 2", "Ката 3"], "a": 0}]`;
 
             try {
-                // Жаңы шилтемеге POST сурамын жиберебиз
                 const response = await fetch(PROXY_URL, {
                     method: 'POST',
                     body: JSON.stringify({ prompt: userPrompt })
@@ -123,7 +121,6 @@
 
                 const data = await response.json();
                 
-                // Gemini'ден келген текстти иштетүү
                 if (data.candidates && data.candidates[0].content.parts[0].text) {
                     let rawText = data.candidates[0].content.parts[0].text;
                     let cleanJson = rawText.replace(/```json|
