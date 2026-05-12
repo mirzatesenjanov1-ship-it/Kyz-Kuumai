@@ -137,6 +137,22 @@
         </div>
     </div>
 
+    <!-- API MODAL WINDOW -->
+    <div id="api-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:30000; justify-content:center; align-items:center; color: black;">
+        <div style="background:white; padding:30px; border-radius:20px; max-width:400px; width:90%; text-align:center; font-family:sans-serif;">
+            <h2 style="color:#2c3e50;">ИИ МЕНЕН ТЕСТ ТҮЗҮҮ</h2>
+            <p>Генерациялоо үчүн сизге API ачкыч керек.</p>
+            <p><b>Ачкычты бул жерден алыңыз:</b></p>
+            <a href="https://boosty.to/astrophysica/purchase/3930187?ssource=DIRECT&share=subscription_link" target="_blank" style="display:inline-block; background:#f1c40f; color:black; padding:12px 25px; margin:10px 0; border-radius:10px; text-decoration:none; font-weight:bold;">🚀 BOOSTY: АЧКЫЧТЫ АЛУУ</a>
+            <p style="font-size:13px; color:gray;">Ачкычты көчүрүп, бул жерге чаптаңыз:</p>
+            <input type="text" id="api-input" placeholder="AIzaSy..." style="width:100%; padding:12px; margin-bottom:20px; border:2px solid #ddd; border-radius:8px;">
+            <div style="display:flex; gap:10px;">
+                <button onclick="saveApiKeyAndStart()" style="flex:1; padding:12px; background:#27ae60; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">САКТОО</button>
+                <button onclick="document.getElementById('api-modal').style.display='none'" style="flex:1; padding:12px; background:#e74c3c; color:white; border:none; border-radius:8px; cursor:pointer;">ЖАБУУ</button>
+            </div>
+        </div>
+    </div>
+
     <div id="setup-screen" class="screen">
         <div style="background: rgba(0,0,0,0.7); padding: 25px; border-radius: 20px; backdrop-filter: blur(10px); width: 85%; max-width: 350px; text-align: center; border: 1px solid #f1c40f;">
             <h2 id="display-level-name" style="color: #f1c40f; font-size: 20px; margin-bottom: 20px;"></h2>
