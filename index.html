@@ -214,6 +214,17 @@
         const firebaseConfig = { databaseURL: "https://kyz-kuumay-game-default-rtdb.firebaseio.com/" };
         firebase.initializeApp(firebaseConfig);
 
+        // ЖАҢЫ API АЧКЫЧТЫ КОШУУ
+        const GEMINI_API_KEY = "AIzaSyA8R1wrfdLsuK2Aie17-UuM7YSY1DR9FYs";
+
+        function saveApiKeyAndStart() {
+            const inputKey = document.getElementById('api-input').value.trim();
+            const activeKey = inputKey || GEMINI_API_KEY;
+            localStorage.setItem('gemini_api_key', activeKey);
+            document.getElementById('api-modal').style.display = 'none';
+            generateAIQuiz();
+        }
+
         function initGame() {
             const music = document.getElementById('menuMusic');
             music.play().catch(e => console.log("Music play error"));
@@ -224,6 +235,21 @@
         function showAISetup() {
             document.getElementById('level-screen').style.display = "none";
             document.getElementById('ai-setup-screen').style.display = "flex";
+        }
+
+        async function generateAIQuiz() {
+            const key = localStorage.getItem('gemini_api_key') || GEMINI_API_KEY;
+            const topic = document.getElementById('ai-topic').value;
+            const subject = document.getElementById('ai-subject').value;
+
+            if (!topic) { alert("Сураныч, теманы жазыңыз!"); return; }
+
+            document.getElementById('loading-ai').style.display = "block";
+            
+            // Бул жерде сиздин game-logic.js'деги функцияңыз чакырылат
+            if (window.startAiQuiz) {
+                window.startAiQuiz(key, subject, topic);
+            }
         }
     </script>
     
