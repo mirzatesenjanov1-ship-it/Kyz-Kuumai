@@ -60,29 +60,35 @@ function selectLevel(idx) {
     document.getElementById('display-level-name').innerText = levelNames[idx];
 }
 
-// --- GEMINI AI ИНТЕГРАЦИЯСЫ (LocalStorage & Boosty) ---
+// --- GEMINI AI ИНТЕГРАЦИЯСЫ (Custom Modal & Boosty) ---
+
+// 1. Негизги чакыруу функциясы
 async function generateAIQuiz() {
-    // 1. Ачкычты браузерден текшерүү
     let GEMINI_API_KEY = localStorage.getItem('MY_GEMINI_KEY');
 
-    // 2. Эгер ачкыч жок болсо, терезе сурайт
+    // Эгер ачкыч жок болсо, модалдык терезени ачабыз
     if (!GEMINI_API_KEY || GEMINI_API_KEY.trim() === "") {
-        const boostyUrl = "https://boosty.to/astrophysica/purchase/3930187?ssource=DIRECT&share=subscription_link";
-        const msg = "ИИ менен тест түзүү үчүн API ачкыч керек.\n\n" +
-                    "Ачкычты бул жерден алыңыз:\n" +
-                    boostyUrl + "\n\n" +
-                    "Ачкычты көчүрүп, бул жерге чаптаңыз:";
-        
-        GEMINI_API_KEY = prompt(msg);
-        
-        if (GEMINI_API_KEY && GEMINI_API_KEY.length > 20) {
-            localStorage.setItem('MY_GEMINI_KEY', GEMINI_API_KEY.trim());
-        } else {
-            alert("API ачкычсыз ИИ иштебейт. Сураныч, Boosty-ден ачкычты алыңыз.");
-            return;
-        }
+        document.getElementById('api-modal').style.display = 'flex';
+        return; 
     }
 
+    startAIGeneration(GEMINI_API_KEY);
+}
+
+// 2. Ачкычты сактоо жана генерацияны баштоо
+function saveApiKeyAndStart() {
+    const input = document.getElementById('api-input').value.trim();
+    if (input.length > 20) {
+        localStorage.setItem('MY_GEMINI_KEY', input);
+        document.getElementById('api-modal').style.display = 'none';
+        startAIGeneration(input);
+    } else {
+        alert("Сураныч, туура API ачкыч киргизиңиз!");
+    }
+}
+
+// 3. Генерациялоо процесси
+async function startAIGeneration(GEMINI_API_KEY) {
     const subjectEl = document.getElementById('ai-subject');
     const topicInputEl = document.getElementById('ai-topic');
     const loading = document.getElementById('loading-ai');
@@ -110,12 +116,8 @@ async function generateAIQuiz() {
         });
 
         if (!response.ok) {
-            // Эгер ачкыч иштебесе, өчүрүп кайра суроо үчүн
-            if (response.status === 400 || response.status === 403) {
-                localStorage.removeItem('MY_GEMINI_KEY');
-                throw new Error("Ачкыч жараксыз. Жаңы ачкыч киргизип көрүңүз.");
-            }
-            throw new Error("Байланыш үзүлдү.");
+            localStorage.removeItem('MY_GEMINI_KEY');
+            throw new Error("Ачкыч жараксыз же мөөнөтү бүткөн.");
         }
 
         const data = await response.json();
@@ -132,7 +134,6 @@ async function generateAIQuiz() {
         document.getElementById('display-level-name').innerText = `ИИ ТЕСТ: ${topic}`;
 
     } catch (error) {
-        console.error("Ката:", error);
         alert("Ката: " + error.message);
         if (loading) loading.style.display = 'none';
     } finally {
@@ -143,6 +144,7 @@ async function generateAIQuiz() {
     }
 }
 
+// --- БӨЛМӨ ЖАНА ОЮН ЛОГИКАСЫ (Өзгөртүлгөн жок) ---
 function createRoom() {
     myName = document.getElementById('player-name').value.trim();
     if (!myName) return alert("Атыңызды жазыңыз!");
