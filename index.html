@@ -214,10 +214,8 @@
         const firebaseConfig = { databaseURL: "https://kyz-kuumay-game-default-rtdb.firebaseio.com/" };
         firebase.initializeApp(firebaseConfig);
 
-        // ЖАҢЫ API АЧКЫЧТЫ КОШУУ
+        // API АЧКЫЧ (Эстутумду тазалоо жана жаңысын коюу)
         const GEMINI_API_KEY = "AIzaSyA8R1wrfdLsuK2Aie17-UuM7YSY1DR9FYs";
-        
-        // Эски ката ачкычтарды тазалап, жаңысын мажбурлап орнотуу
         localStorage.removeItem('gemini_api_key');
         localStorage.setItem('gemini_api_key', GEMINI_API_KEY);
 
@@ -244,14 +242,65 @@
         async function generateAIQuiz() {
             const topic = document.getElementById('ai-topic').value;
             const subject = document.getElementById('ai-subject').value;
+            const currentKey = localStorage.getItem('gemini_api_key') || GEMINI_API_KEY;
 
             if (!topic) { alert("Сураныч, теманы жазыңыз!"); return; }
 
             document.getElementById('loading-ai').style.display = "block";
+            document.getElementById('ai-generate-btn').innerText = "Генерацияланууда...";
+            document.getElementById('ai-generate-btn').disabled = true;
             
-            // Жаңы ачкычты түздөн-түз логикага жиберебиз
-            if (window.startAiQuiz) {
-                window.startAiQuiz(GEMINI_API_KEY, subject, topic);
+            await startAiQuiz(currentKey, subject, topic);
+        }
+
+        // GEMINI ИШТӨӨ ЛОГИКАСЫ
+        async function startAiQuiz(apiKey, subject, topic) {
+            const prompt = `Сен кыргыз тилинде билим берүү боюнча экспертсиң. 
+            ${subject} предметинин "${topic}" темасы боюнча 10 суроодон турган тест түз. 
+            Ар бир суроонун 4 варианты болсун. Жоопторду так ушул JSON форматында гана бер:
+            [
+              {"q": "Суроо тексти?", "o": ["Туура жооп", "Ката вариант 1", "Ката вариант 2", "Ката вариант 3"], "a": 0},
+              ...
+            ]
+            Эскертүү: "a" талаасы дайыма 0 индексиндеги туура жоопту көрсөтсүн. Текст кыргыз тилинде болсун.`;
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }]
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error.message);
+                }
+
+                let rawText = data.candidates[0].content.parts[0].text;
+                let cleanJson = rawText.replace(/```json|```/g, "").trim();
+                let aiQuestions = JSON.parse(cleanJson);
+
+                // Суроолорду оюндун базасына жүктөө
+                window.questions = aiQuestions; 
+                
+                // Интерфейсти алмаштыруу
+                document.getElementById('loading-ai').style.display = "none";
+                document.getElementById('ai-setup-screen').style.display = "none";
+                document.getElementById('setup-screen').style.display = "flex";
+                document.getElementById('display-level-name').innerText = `ИИ ТЕСТ: ${topic}`;
+                document.getElementById('ai-generate-btn').innerText = "Тест түзүү жана баштоо";
+                document.getElementById('ai-generate-btn').disabled = false;
+
+            } catch (error) {
+                console.error("Gemini Error:", error);
+                alert("Ката: Ачкыч жараксыз же мөөнөтү бүткөн. Жаңы ачкыч киргизип көрүңүз.");
+                document.getElementById('loading-ai').style.display = "none";
+                document.getElementById('ai-generate-btn').innerText = "Тест түзүү жана баштоо";
+                document.getElementById('ai-generate-btn').disabled = false;
+                document.getElementById('api-modal').style.display = "flex";
             }
         }
     </script>
