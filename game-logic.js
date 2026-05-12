@@ -60,9 +60,9 @@ function selectLevel(idx) {
     document.getElementById('display-level-name').innerText = levelNames[idx];
 }
 
-// --- GEMINI AI ИНТЕГРАЦИЯСЫ ---
+// --- GEMINI AI ИНТЕГРАЦИЯСЫ (ТУРУКТУУ ВЕРСИЯ) ---
 async function generateAIQuiz() {
-    // API Ачкычты текшерүү
+    // 1. API Ачкычты жана элементтерди текшерүү
     let GEMINI_API_KEY = "";
     if (typeof CONFIG !== 'undefined' && CONFIG.GEMINI_API_KEY) {
         GEMINI_API_KEY = CONFIG.GEMINI_API_KEY.trim();
@@ -73,18 +73,25 @@ async function generateAIQuiz() {
         return;
     }
 
-    const subject = document.getElementById('ai-subject').value;
-    const topicInput = document.getElementById('ai-topic').value.trim();
-    const topic = topicInput || "Жалпы суроолор";
+    const subjectEl = document.getElementById('ai-subject');
+    const topicInputEl = document.getElementById('ai-topic');
     const loading = document.getElementById('loading-ai');
-    const btn = document.getElementById('ai-generate-btn');
+    
+    // Жашыл баскычты идентификациялоо (event аркылуу же ID аркылуу)
+    const btn = document.getElementById('ai-generate-btn') || (event ? event.target : null);
 
-    loading.style.display = 'block';
-    btn.disabled = true; // Кайра-кайра басуудан коргоо
+    const subject = subjectEl ? subjectEl.value : "Физика";
+    const topic = (topicInputEl && topicInputEl.value.trim()) ? topicInputEl.value.trim() : "Жалпы суроолор";
+
+    // 2. Визуалдык режимди иштетүү
+    if (loading) loading.style.display = 'block';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = "Генерацияланууда...";
+    }
     isAIGame = true;
 
     const prompt = `Сен кыргыз тилдүү профессионал мугалимсиң. ${subject} предметинен "${topic}" темасына 20 суроодон турган тест түз. 
-    Ар бир суроодо 3 вариант болсун.
     Формат ТАЗА JSON болушу керек, башка эч кандай текст кошпо: [{"q": "суроо", "a": ["вариант1", "вариант2", "вариант3"], "c": "туура жооптун тексти"}]`;
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
@@ -104,32 +111,38 @@ async function generateAIQuiz() {
         const data = await response.json();
         
         if (!data.candidates || !data.candidates[0].content.parts[0].text) {
-            throw new Error("ИИ жооп кайтарган жок. Кайра аракет кылыңыз.");
+            throw new Error("ИИ жооп кайтарган жок.");
         }
 
         let textResponse = data.candidates[0].content.parts[0].text;
-        // JSON'ду тазалоо (Markdown белгилерин алып салуу)
-        const cleanJson = textResponse.replace(/```json|
-```/g, "").trim();
-        const aiQuestions = JSON.parse(cleanJson);
+        
+        // JSON'ду тазалоо (Markdown белгилерин жана ашыкча текстти алып салуу)
+        const jsonMatch = textResponse.match(/\[[\s\S]*\]/);
+        if (!jsonMatch) throw new Error("ИИ туура эмес форматта жооп берди.");
+        
+        const aiQuestions = JSON.parse(jsonMatch[0]);
 
         if (!Array.isArray(aiQuestions) || aiQuestions.length === 0) {
-            throw new Error("Суроолор бош форматта келди.");
+            throw new Error("Суроолор бош келип калды.");
         }
 
         window.tempAIQuestions = aiQuestions;
         
-        loading.style.display = 'none';
-        btn.disabled = false;
+        // Экрандарды алмаштыруу
+        if (loading) loading.style.display = 'none';
         document.getElementById('ai-setup-screen').style.display = "none";
         document.getElementById('setup-screen').style.display = "flex";
-        document.getElementById('display-level-name').innerText = `ИИ ТЕСТ: ${subject}`;
+        document.getElementById('display-level-name').innerText = `ИИ ТЕСТ: ${topic}`;
 
     } catch (error) {
         console.error("Генерация катасы:", error);
         alert("Ката кетти: " + error.message);
-        loading.style.display = 'none';
-        btn.disabled = false;
+        if (loading) loading.style.display = 'none';
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = "Тест түзүү жана баштоо";
+        }
     }
 }
 
@@ -205,8 +218,10 @@ function launch() {
     document.getElementById('sync-overlay').style.display = "none";
     document.getElementById('game-field').style.display = "block";
     document.getElementById('ui-bottom').style.display = "flex";
-    document.getElementById('boyVideo').play();
-    document.getElementById('girlVideo').play();
+    const bVid = document.getElementById('boyVideo');
+    const gVid = document.getElementById('girlVideo');
+    if (bVid) bVid.play();
+    if (gVid) gVid.play();
     renderGame();
 }
 
@@ -234,6 +249,8 @@ function renderGame() {
             if (!q) return checkWinner("Суроолор бүттү!");
             const optArea = document.getElementById('options');
             const qText = document.getElementById('q-text');
+            if (!optArea || !qText) return;
+
             optArea.innerHTML = "";
             if (turn === myRole) {
                 optArea.classList.remove('disabled-overlay');
@@ -271,8 +288,10 @@ function renderGame() {
         const p = s.val() || {boy:0, girl:0};
         const bPos = 5 + (p.boy || 0);
         const gPos = 45 + (p.girl || 0);
-        document.getElementById('boy-container').style.left = bPos + "%";
-        document.getElementById('girl-container').style.left = gPos + "%";
+        const bCont = document.getElementById('boy-container');
+        const gCont = document.getElementById('girl-container');
+        if (bCont) bCont.style.left = bPos + "%";
+        if (gCont) gCont.style.left = gPos + "%";
         
         if (bPos >= (gPos - 2)) checkWinner("Жигит кызга жетти! 🏇");
         else if (gPos >= 90) checkWinner("Кыз качып кетти! 🐎");
@@ -296,6 +315,7 @@ function renderGame() {
             document.getElementById('ui-bottom').style.display = "none";
 
             const lb = document.getElementById('leaderboard-screen');
+            if (!lb) return;
             lb.style.display = "flex";
             lb.style.zIndex = "10000";
             lb.style.position = "fixed";
