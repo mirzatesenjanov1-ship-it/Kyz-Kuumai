@@ -82,7 +82,7 @@
 
         #loading-ai { display: none; color: #f1c40f; font-weight: bold; margin-top: 10px; text-shadow: 1px 1px 2px #000; }
 
-        /* Скриншоттордогудай дизайн үчүн кошумча */
+        /* Дизайн үчүн кошумча */
         input[type="text"], input[type="number"], select {
             border: 2px solid #f1c40f;
             outline: none;
@@ -120,7 +120,6 @@
         </div>
     </div>
 
-    <!-- ИИ ЖӨНДӨӨ ЭКРАНЫ (image_d36ec0.jpg негизинде оңдолду) -->
     <div id="ai-setup-screen" class="screen">
         <div style="background: rgba(0,0,0,0.7); padding: 25px; border-radius: 20px; backdrop-filter: blur(10px); width: 85%; max-width: 350px; text-align: center; border: 1px solid #f1c40f;">
             <h2 style="color: #f1c40f; margin-bottom: 20px;">🤖 ИИ МЕНЕН ТЕСТ</h2>
@@ -186,17 +185,22 @@
 
     <div id="leaderboard-screen" class="screen"></div>
 
+    <!-- Firebase Scripts -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
+    <!-- Custom Logic -->
+    <script src="config.js"></script>
+    <script src="questions.js"></script>
+    
     <script>
-        // FIREBASE ЖӨНДӨӨСҮ
+        // FIREBASE INITIALIZATION
         const firebaseConfig = { databaseURL: "https://kyz-kuumay-game-default-rtdb.firebaseio.com/" };
         firebase.initializeApp(firebaseConfig);
 
         function initGame() {
             const music = document.getElementById('menuMusic');
-            music.play().catch(e => console.log("Музыка ойноо үчүн колдонуучунун аракети керек"));
+            music.play().catch(e => console.log("Music play error"));
             document.getElementById('start-screen').style.display = "none";
             document.getElementById('level-screen').style.display = "flex";
         }
@@ -207,10 +211,6 @@
         }
     </script>
     
-    <!-- Файлдардын ирети өтө маанилүү! -->
-    <script src="config.js"></script>
-    <script src="questions.js"></script>
     <script src="game-logic.js"></script>
-
 </body>
 </html>
